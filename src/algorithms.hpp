@@ -11,6 +11,8 @@ double dot1d(
     nb::ndarray<nb::numpy, const double, nb::c_contig> a,
     nb::ndarray<nb::numpy, const double, nb::c_contig> b);
 
+void for_loop(std::size_t first, std::size_t last, nb::callable func);
+
 // nb::ndarray<nb::numpy, double, nb::c_contig>
 // matmul2d(
 //     nb::ndarray<nb::numpy, const double, nb::c_contig> A,

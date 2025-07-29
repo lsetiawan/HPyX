@@ -3,6 +3,7 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/ndarray.h>
 #include <hpx/numeric.hpp>
+#include <hpx/algorithm.hpp>
 
 namespace nb = nanobind;
 
@@ -28,6 +29,18 @@ double dot1d(
         std::plus<>(),                // reduction operation
         [](double x, double y) {      // transform operation
             return x * y;
+        }
+    );
+}
+
+void for_loop(std::size_t first, std::size_t last, nb::callable func)
+{
+    hpx::experimental::for_loop(
+        hpx::execution::par,          // parallel execution policy
+        first, last,                  // range of loop
+        [func](std::size_t i) {       // loop body
+            nb::gil_scoped_acquire acquire;
+            func(i);
         }
     );
 }

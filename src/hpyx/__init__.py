@@ -15,6 +15,6 @@ except ImportError:
 from . import hello
 from .executor import HPXExecutor
 from .runtime import HPXRuntime
-from ._core import add, hpx_hello
+from ._core import add, hpx_hello, for_loop
 
-__all__ = ["add", "HPXExecutor", "HPXRuntime", "hello", "hpx_hello"]
+__all__ = ["add", "HPXExecutor", "HPXRuntime", "hello", "hpx_hello", "for_loop"]
