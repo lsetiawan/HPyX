@@ -12,6 +12,7 @@ policies.
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable, Iterable
 from typing import Literal
 
@@ -22,6 +23,13 @@ from hpyx.execution import par as _par, seq as _seq
 def for_loop(
     function: Callable, iterable: Iterable, policy: Literal["seq", "par"] = "seq"
 ) -> None:
+    warnings.warn(
+        "hpyx.multiprocessing.for_loop is deprecated and will be removed in a "
+        "future release. Use hpyx.parallel.for_each(policy, iterable, fn) "
+        "instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     """
     Execute a function over an iterable using HPX's parallel for_loop.
 
