@@ -15,6 +15,7 @@
 #include "runtime.hpp"
 #include "algorithms.hpp"
 #include "futures.hpp"
+#include "kernels.hpp"
 #include "parallel.hpp"
 
 #define STRINGIFY(x) #x
@@ -33,8 +34,8 @@ NB_MODULE(_core, m)
     auto m_futures = m.def_submodule("futures");
     hpyx::futures::register_bindings(m_futures);
 
-    // Binding algorithms functionalities
-    m.def("dot1d", &algorithms::dot1d, "a"_a, "b"_a);
+    auto m_kernels = m.def_submodule("kernels");
+    hpyx::kernels::register_bindings(m_kernels);
 
     auto m_parallel = m.def_submodule("parallel");
     hpyx::parallel::register_bindings(m_parallel);
