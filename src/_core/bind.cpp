@@ -15,6 +15,7 @@
 #include "runtime.hpp"
 #include "algorithms.hpp"
 #include "futures.hpp"
+#include "parallel.hpp"
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
@@ -34,21 +35,9 @@ NB_MODULE(_core, m)
 
     // Binding algorithms functionalities
     m.def("dot1d", &algorithms::dot1d, "a"_a, "b"_a);
-    m.def("hpx_for_loop", &algorithms::hpx_for_loop, "function"_a, "iterable"_a, "policy"_a, "Parallel for loop over an interable");
-    
-    // TODO: Uncomment and implement the following if needed
-    //
-    // m.def("hpx_transform", [](nb::callable f, nb::args args)
-    //       {
-    //     auto result = hpx::transform(
-    //         hpx::execution::par, *args,
-    //         [f](auto &&x) {
-    //             nb::gil_scoped_acquire acquire;
-    //             return f(x);
-    //         });
-    //     return result; }, "f"_a, nb::arg("*args"));
-    //
-    // m.def("matmul2d", &matmul2d, "A"_a, "B"_a);
+
+    auto m_parallel = m.def_submodule("parallel");
+    hpyx::parallel::register_bindings(m_parallel);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);

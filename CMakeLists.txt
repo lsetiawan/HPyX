@@ -90,6 +90,7 @@ nanobind_add_module(
   src/_core/runtime.cpp
   src/_core/algorithms.cpp
   src/_core/futures.cpp
+  src/_core/parallel.cpp
 )
 
 # TODO: Add new modules here, maybe even HPX modules?

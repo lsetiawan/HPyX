@@ -7,7 +7,7 @@ try:
 except ImportError:
     __version__ = "0.0.0"
 
-from hpyx import _runtime, aio, config, debug, execution, futures, multiprocessing
+from hpyx import _runtime, aio, config, debug, execution, futures, multiprocessing, parallel
 from hpyx._runtime import is_running, shutdown
 from hpyx.executor import HPXExecutor
 from hpyx.futures import (
@@ -46,6 +46,7 @@ __all__ = [
     "init",
     "is_running",
     "multiprocessing",
+    "parallel",
     "ready_future",
     "shared_future",
     "shutdown",

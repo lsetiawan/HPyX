@@ -4,6 +4,10 @@ Parallel for-loop execution using HPX algorithms.
 This module provides the for_loop function that leverages HPX's parallel
 algorithms to execute functions over iterables with configurable execution
 policies.
+
+.. deprecated::
+    This legacy module delegates to ``hpyx.parallel.for_each``. Prefer
+    using ``hpyx.parallel.for_each`` or ``hpyx.parallel.for_loop`` directly.
 """
 
 from __future__ import annotations
@@ -11,7 +15,8 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from typing import Literal
 
-from .._core import hpx_for_loop
+from hpyx import _core, _runtime
+from hpyx.execution import par as _par, seq as _seq
 
 
 def for_loop(
@@ -35,7 +40,7 @@ def for_loop(
     policy : {'seq', 'par'}, default 'seq'
         Execution policy for the loop.
         - 'seq' : Sequential execution
-        - 'par' : Parallel execution using available cores (*not yet implemented*)
+        - 'par' : Parallel execution using available cores
 
     Notes
     -----
@@ -56,7 +61,8 @@ def for_loop(
     ...     for_loop(square_inplace, enumerate(data), policy="seq")
     ...     print(data)  # data is now modified
     """
-    if policy == "par":
-        msg = "Parallel execution policy is not yet implemented in this version."
-        raise NotImplementedError(msg)
-    hpx_for_loop(function, iterable, policy)
+    exec_policy = _par if policy == "par" else _seq
+    _runtime.ensure_started()
+    t = exec_policy._token()
+    _core.parallel.for_each(t.kind, t.task, t.chunk, t.chunk_size,
+                            iterable, function)
