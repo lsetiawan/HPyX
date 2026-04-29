@@ -1,9 +1,15 @@
 """hpyx.parallel — Python-callback parallel algorithms over integer ranges
 and iterables.
 
-Every function takes a policy (from `hpyx.execution`) as the first
-argument. When the policy carries the `task` tag, the function returns
-an `hpyx.Future[T]` instead of the synchronous result.
+Every function takes a policy (from ``hpyx.execution``) as the first
+argument.  When the policy carries the ``task`` tag, the function returns
+an ``hpyx.Future[T]`` instead of the synchronous result.
+
+For ``par`` and ``par_unseq`` policies with Python callbacks, each iteration
+is submitted as an independent ``hpyx.async_`` task on an HPX worker thread.
+The ``seq`` and ``unseq`` policies call the C++ layer directly for zero
+overhead.  Pure C++ kernels (no Python callback) can use HPX parallel
+policies natively — see ``hpyx.kernels``.
 """
 
 from __future__ import annotations
@@ -13,11 +19,10 @@ from typing import Any, Union
 
 from hpyx import _core, _runtime
 from hpyx.execution import _Policy
-from hpyx.futures import Future
+from hpyx.futures import Future, async_
 
 
 def _token_fields(policy: _Policy) -> tuple:
-    """Extract token fields from a Python _Policy as a tuple of ints."""
     t = policy._token()
     return (t.kind, t.task, t.chunk, t.chunk_size)
 
@@ -35,8 +40,14 @@ def for_loop(
             "Task variant of for_loop is not yet supported. "
             "Use a synchronous policy (e.g. par, seq) instead."
         )
-    kind, task, chunk, chunk_size = _token_fields(policy)
-    _core.parallel.for_loop(kind, task, chunk, chunk_size, first, last, body)
+
+    if policy.name in ("par", "par_unseq"):
+        futs = [async_(body, i) for i in range(first, last)]
+        for f in futs:
+            f.result()
+    else:
+        kind, task_flag, chunk, chunk_size = _token_fields(policy)
+        _core.parallel.for_loop(kind, task_flag, chunk, chunk_size, first, last, body)
     return None
 
 
@@ -52,8 +63,16 @@ def for_each(
             "Task variant of for_each is not yet supported. "
             "Use a synchronous policy (e.g. par, seq) instead."
         )
-    kind, task, chunk, chunk_size = _token_fields(policy)
-    _core.parallel.for_each(kind, task, chunk, chunk_size, iterable, fn)
+
+    items = list(iterable)
+
+    if policy.name in ("par", "par_unseq"):
+        futs = [async_(fn, item) for item in items]
+        for f in futs:
+            f.result()
+    else:
+        kind, task_flag, chunk, chunk_size = _token_fields(policy)
+        _core.parallel.for_each(kind, task_flag, chunk, chunk_size, items, fn)
     return None
 
 

@@ -12,7 +12,11 @@
 #include <nanobind/stl/vector.h>
 #include <nanobind/stl/string.h>
 
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
+
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
 #include <vector>
 
@@ -32,76 +36,40 @@ void ensure_runtime() {
 
 }  // namespace
 
-// Build a PolicyToken from ints inside C++. Called from the binding functions.
-static hpyx::policy::PolicyToken make_token(
-    int kind, bool task, int chunk, std::size_t chunk_size)
-{
-    return hpyx::policy::PolicyToken{
-        static_cast<hpyx::policy::Kind>(kind),
-        task,
-        static_cast<hpyx::policy::ChunkKind>(chunk),
-        chunk_size,
-    };
-}
-
-// ---- for_loop (synchronous) ----
-
+// Sequential for_loop — called from the main Python thread with GIL held.
+// The Python wrapper dispatches par/par_unseq policies via hpyx.async_
+// to avoid free-threaded Python thread-state races in HPX's work-stealing.
 static void parallel_for_loop(
-    int kind, bool task, int chunk, std::size_t chunk_size,
+    int kind, bool task_flag, int chunk, std::size_t chunk_size,
     std::int64_t first,
     std::int64_t last,
     nb::callable body)
 {
     ensure_runtime();
-    auto tok = make_token(kind, task, chunk, chunk_size);
-
-    auto pyfn = [body](std::int64_t i) {
-        HPYX_CALLBACK_GIL;
-        body(i);
-    };
-
-    nb::gil_scoped_release release;
-    hpyx::policy::dispatch_policy(tok, [&](auto&& policy) {
-        hpx::experimental::for_loop(policy, first, last, pyfn);
-    });
+    for (std::int64_t i = first; i < last; ++i) {
+        body(nb::int_(i));
+    }
 }
 
-// ---- for_each (synchronous) ----
-
+// Sequential for_each — iterates and calls fn(item) for each element.
 static void parallel_for_each(
-    int kind, bool task, int chunk, std::size_t chunk_size,
+    int kind, bool task_flag, int chunk, std::size_t chunk_size,
     nb::iterable iterable,
     nb::callable body)
 {
     ensure_runtime();
-    auto tok = make_token(kind, task, chunk, chunk_size);
-
-    std::vector<nb::object> items;
     for (auto item : iterable) {
-        items.push_back(nb::borrow(item));
-    }
-
-    auto pyfn = [body](nb::object& item) {
-        HPYX_CALLBACK_GIL;
         body(item);
-    };
-
-    nb::gil_scoped_release release;
-    hpyx::policy::dispatch_policy(tok, [&](auto&& policy) {
-        hpx::for_each(policy, items.begin(), items.end(), pyfn);
-    });
+    }
 }
 
 void register_bindings(nb::module_& m) {
     m.def("for_loop", &parallel_for_loop,
           "kind"_a, "task"_a, "chunk"_a, "chunk_size"_a,
-          "first"_a, "last"_a, "body"_a,
-          "Invoke body(i) for i in [first, last) under the given execution policy.");
+          "first"_a, "last"_a, "body"_a);
     m.def("for_each", &parallel_for_each,
           "kind"_a, "task"_a, "chunk"_a, "chunk_size"_a,
-          "iterable"_a, "body"_a,
-          "Apply body(x) to every element in iterable under the given execution policy.");
+          "iterable"_a, "body"_a);
 }
 
 }  // namespace hpyx::parallel
-
